@@ -1,0 +1,170 @@
+# here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import matplotlib.pyplot as plt # for data visualization
+import seaborn as sns # for statistical data visualization
+from sklearn.model_selection import train_test_split #to split the input and output
+%matplotlib inline
+
+# Data details
+https://archive.ics.uci.edu/ml/datasets/Audit+Data#
+
+#Data load with help of pandas
+df = pd.read_csv ('/Users/manan/Desktop/vrn trash/data science/audit_data/audit_data/audit_risk.csv')
+df.head()  #visualize the fisrt 5 samples
+
+print('Shape of data frame:',df.shape)  # check the shape of data frame
+print("Column's name :\n", df.columns )  #print the columns name
+
+df.info()  # basic information of data frame
+
+# check wheather data frame have null component as element in any column
+# reactify that null element
+meanvalue_money = df['Money_Value'].mean()  
+df['Money_Value'].fillna(value=meanvalue_money, inplace=True)
+df.isnull().sum()
+
+X= df.drop(["Risk", 'LOCATION_ID'], axis=1)  # feature set from data frame
+Y = df['Risk']     # Target variable 
+print(X)
+print(Y)
+
+# split the data frame into Train and test parts with fix random state
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=42)  
+
+#round(df.describe(),2)  ## statistical analysis of data frame, numerical values are around of to 2 upto 2 digit
+
+print('shape of X_train sample:',X_train.shape, ',y_train:', y_train.shape)  # check the shape of X_train, y_train
+print('shape of X_test sample:', X_test.shape,',y_test:', y_test.shape)    # check the chape of X_test, y_test
+
+from sklearn.preprocessing import StandardScaler  # scaling library is imported here
+
+scaler = StandardScaler()
+
+# standardize the X_train, X_test
+X_train = scaler.fit_transform(X_train)  
+X_test = scaler.transform(X_test)
+
+# import SVC classifier library
+from sklearn.svm import SVC 
+
+# import metrics to compute accuracy
+from sklearn.metrics import accuracy_score
+
+# instantiate classifier with default hyperparameters
+#svc = SVC()
+svc=SVC(C= 1000, kernel= 'poly', verbose=True)   # customized hyperparaters is taken as per requirement
+
+
+# fit classifier to training set
+svc.fit(X_train,y_train)
+
+# make predictions on test set
+y_pred=svc.predict(X_test)
+
+# compute and print accuracy score
+print('Model accuracy score with default hyperparameters: {0:0.4f}'. format(accuracy_score(y_test, y_pred)))
+
+# print the scores on training and test set
+
+print('Training set score: {:.4f}'.format(svc.score(X_train, y_train)))
+
+print('Test set score: {:.4f}'.format(svc.score(X_test, y_test)))
+
+# Print the Confusion Matrix and slice it into four pieces
+
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred)
+
+print('Confusion matrix\n\n', cm)
+
+print('\nTrue Positives(TP) = ', cm[0,0])
+
+print('\nTrue Negatives(TN) = ', cm[1,1])
+
+print('\nFalse Positives(FP) = ', cm[0,1])
+
+print('\nFalse Negatives(FN) = ', cm[1,0])
+
+# visualize confusion matrix with seaborn heatmap
+
+cm_matrix = pd.DataFrame(data=cm, columns=['Actual Positive:1', 'Actual Negative:0'], 
+                                 index=['Predict Positive:1', 'Predict Negative:0'])
+
+sns.heatmap(cm_matrix, annot=True, fmt='d', cmap='YlGnBu')
+
+from sklearn.metrics import classification_report
+
+print(classification_report(y_test, y_pred))
+
+TP = cm[0,0]
+TN = cm[1,1]
+FP = cm[0,1]
+FN = cm[1,0]
+
+# print classification accuracy
+
+classification_accuracy = (TP + TN) / float(TP + TN + FP + FN)
+
+print('Classification accuracy : {0:0.4f}'.format(classification_accuracy))
+
+# print classification error
+
+classification_error = (FP + FN) / float(TP + TN + FP + FN)
+
+print('Classification error : {0:0.4f}'.format(classification_error))
+
+
+
+# print precision score
+
+precision = TP / float(TP + FP)
+
+print('Precision : {0:0.4f}'.format(precision))
+
+recall = TP / float(TP + FN)                                           # recall metric calculation
+print('Recall or Sensitivity : {0:0.4f}'.format(recall))
+
+
+true_positive_rate = TP / float(TP + FN)                              # true positive rate calculation
+print('True Positive Rate : {0:0.4f}'.format(true_positive_rate))
+
+false_positive_rate = FP / float(FP + TN)                             # false positive rate calculation
+print('False Positive Rate : {0:0.4f}'.format(false_positive_rate))
+
+specificity = TN / (TN + FP)                                         # specificity calaculation
+print('Specificity : {0:0.4f}'.format(specificity))
+
+
+# plot ROC Curve
+
+from sklearn.metrics import roc_curve     # metric variable is imported by sklearn library 
+
+fpr, tpr, thresholds = roc_curve(y_test, y_pred)
+plt.figure(figsize=(6,6))
+plt.plot(fpr, tpr, linewidth=2)
+plt.plot([0,1], [0,1], 'k--' )
+plt.rcParams['font.size'] = 12
+plt.title('ROC curve for  classifier')
+plt.xlabel('False Positive Rate (1 - Specificity)')
+plt.ylabel('True Positive Rate (Sensitivity)')
+plt.show()
+
+
+# compute ROC AUC
+
+from sklearn.metrics import roc_auc_score     # import area under the curve calculation
+
+ROC_AUC = roc_auc_score(y_test, y_pred)
+
+print('ROC AUC : {:.4f}'.format(ROC_AUC))
+
+# calculate cross-validated ROC AUC 
+
+from sklearn.model_selection import cross_val_score      # validated with random cv values, by cross_val_score metric
+
+Cross_validated_ROC_AUC = cross_val_score(svc, X_train, y_train, cv=6, scoring='roc_auc').mean()
+
+print('Cross validated ROC AUC : {:.4f}'.format(Cross_validated_ROC_AUC))
